@@ -339,9 +339,15 @@ def consume_messages(
 
         # NEW: add processed timestamp, then write the valid record to DuckDB
         enriched[PROCESSED_TIMESTAMP_FIELD] = datetime.utcnow().isoformat()
-        write_valid_record(OUTPUT_DB, enriched)
-        LOG.info("Wrote valid record to DuckDB:")
-        LOG.info(f"  order={enriched['order_id']}")
+        try:
+            write_valid_record(OUTPUT_DB, enriched)
+            LOG.info("Wrote valid record to DuckDB:")
+            LOG.info(f"  order={enriched['order_id']}")
+        except Exception:  # pragma: no cover - defensive runtime handling
+            LOG.exception(
+                "Failed to write record to DuckDB; continuing. order=%s",
+                enriched.get("order_id", "?"),
+            )
 
         # Also update the CSV as usual.
         output_fieldnames = [*CONSUMED_FIELDNAMES, PROCESSED_TIMESTAMP_FIELD]
